@@ -15,8 +15,8 @@ let isMuted = false; // Track whether the bot is muted
 
 // Load commands from the commands folder
 const commands = new Map();
-fs.readdirSync(path.join(__dirname, 'commands')).forEach(file => {
-    const command = require(`./commands/${file}`);
+fs.readdirSync(path.join(__dirname, 'command')).forEach(file => {
+    const command = require(`./command/${file}`);
     commands.set(command.name, command);
 });
 
