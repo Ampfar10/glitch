@@ -117,7 +117,7 @@ async function startBot() {
     conn.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         if (!msg.key.fromMe) {
-            await handleMessage(conn, msg, OWNER_ID); // Pass the isMuted state to the message handler
+            await handleMessage(conn, msg, OWNER_ID, commands); // Pass the isMuted state to the message handler
         }
     });
 }
