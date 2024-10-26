@@ -29,7 +29,7 @@ module.exports = async function handleMessage(conn, msg, ownerId) {
         if (text.startsWith(PREFIX)) {
             const commandName = text.slice(PREFIX.length).trim().split(' ')[0]; // Extract the command
             try {
-                const command = require(`../commands/${commandName}`); // Load command dynamically
+                const command = require(`../command/${commandName}`); // Load command dynamically
 
                 // Execute the command if it exists, passing the senderId instead of chatId
                 if (command) {
