@@ -2,7 +2,7 @@ module.exports = {
     name: 'well',
     category: 'Owner',
     description: 'Adds owner to a group by group ID (owner only)',
-    async execute(conn, chatId, args) {
+    async execute(conn, chatId, args, msg) {
         if (!await isOwner(msg)) return conn.sendMessage(msg.key.remoteJid, { text: 'Only the bot owner can use this command.' });
 
         const groupId = args[0];
