@@ -2,7 +2,7 @@ module.exports = {
     name: 'link',
     category: 'Group',
     description: 'Gets the group link',
-    async execute(conn, msg) {
+    async execute(conn, chatId) {
         const { remoteJid } = msg.key;
         try {
             const linkCode = await conn.groupInviteCode(remoteJid);
