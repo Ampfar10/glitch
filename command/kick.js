@@ -2,7 +2,7 @@ module.exports = {
     name: 'kick',
     category: 'Group',
     description: 'Kicks a user from the group (admin only)',
-    async execute(conn, msg) {
+    async execute(conn, chatId) {
         const { remoteJid } = msg.key;
         if (!await isAdmin(conn, msg)) return conn.sendMessage(remoteJid, { text: 'Only admins can use this command.' });
 
