@@ -2,7 +2,7 @@ module.exports = {
     name: 'tagall',
     category: 'Group',
     description: 'Tags all group members (admin only)',
-    async execute(conn, chatId) {
+    async execute(conn, chatId, msg) {
         const { remoteJid } = msg.key;
         if (!await isAdmin(conn, msg)) return conn.sendMessage(remoteJid, { text: 'Only admins can use this command.' });
 
