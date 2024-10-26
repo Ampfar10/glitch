@@ -11,7 +11,6 @@ const { isAdmin } = require('./utils/groupUtils');
 const PREFIX = '!';
 const OWNER_ID = '27672633675@s.whatsapp.net'; // Owner's WhatsApp ID formatted correctly
 
-let isMuted = false; // Track whether the bot is muted
 
 // Load commands from the commands folder
 const commands = new Map();
@@ -22,7 +21,7 @@ fs.readdirSync(path.join(__dirname, 'command')).forEach(file => {
 
 // Function to create a rainbow effect
 function getRainbowColors() {
-    return ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta'];
+    return ['red', 'yellow', 'white', 'cyan', 'blue', 'magenta'];
 }
 
 // Set up Express server for QR code display
@@ -51,7 +50,7 @@ async function startBot() {
     const conn = makeWASocket({
         printQRInTerminal: true,
         auth: state,
-        browser: ['Glitch 0_0', 'macOS', '3.0'],
+        browser: ['Glitch x_x', 'macOS', '3.0'],
         syncFullHistory: true,
     });
 
@@ -118,7 +117,7 @@ async function startBot() {
     conn.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         if (!msg.key.fromMe) {
-            await handleMessage(conn, msg, OWNER_ID, isMuted); // Pass the isMuted state to the message handler
+            await handleMessage(conn, msg, OWNER_ID); // Pass the isMuted state to the message handler
         }
     });
 }
