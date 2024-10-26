@@ -10,10 +10,10 @@ module.exports = {
         const categorizedCommands = new Map();
 
         // Scan the commands folder and load commands
-        const commandFiles = fs.readdirSync(path.join(__dirname, '../commands'));
+        const commandFiles = fs.readdirSync(path.join(__dirname, '../command'));
 
         commandFiles.forEach(file => {
-            const command = require(`../commands/${file}`);
+            const command = require(`../command/${file}`);
             
             // Group commands by category
             if (!categorizedCommands.has(command.category)) {
