@@ -20,7 +20,7 @@ const formatYouTubeResponse = (items) => {
     const videos = items.map(item => ({
         title: item.snippet.title,
         url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        thumbnail: item.snippet.thumbnails.standard.url,
+        thumbnail: item.snippet.thumbnails.maxres?.url || item.snippet.thumbnails.high.url,
     }));
 
     return videos;
@@ -47,7 +47,7 @@ module.exports = {
                 responseMessage += `${index + 1}. ${video.title}\n${video.url}\n\n`;
             });
 
-            // Include the thumbnail of the first video
+            // Include the thumbnail of the first video in high quality
             if (videos.length > 0) {
                 await conn.sendMessage(chatId, {
                     image: { url: videos[0].thumbnail },
