@@ -20,7 +20,7 @@ const formatYouTubeResponse = (items) => {
     const videos = items.map(item => ({
         title: item.snippet.title,
         url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        thumbnail: item.snippet.thumbnails.default.url,
+        thumbnail: item.snippet.thumbnails.standard.url,
     }));
 
     return videos;
