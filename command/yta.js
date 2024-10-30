@@ -30,7 +30,7 @@ module.exports = {
     name: 'yta',
     description: 'Download audio from YouTube',
     category: 'Media',
-    async execute(conn, chatId, args) {
+    async execute(conn, chatId, args, senderId) {
         const url = args[0];
         if (!url) {
             await conn.sendMessage(chatId, { text: 'Please provide a YouTube video URL!' });
@@ -52,6 +52,7 @@ module.exports = {
                 audio: { url: audioFilePath },
                 mimetype: 'audio/mpeg',
                 caption: `Here is your audio: ${path.basename(audioFilePath)}`,
+                mentions: [senderId],
                 ptt: false
             });
             setTimeout(() => {
