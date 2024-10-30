@@ -13,7 +13,7 @@ module.exports = {
 
         try {
             // Send request to download video and get title
-            const response = await axios.post('http://127.0.0.1:5000/downloadv', { url });
+            const response = await axios.post('https://ampfar12.pythonanywhere.com/downloadv', { url });
             const { title } = response.data;
 
             // Notify the user about the download with the video title
