@@ -1,98 +1,42 @@
-const fs = require('fs');
-const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
-const path = require('path');
-const ffmpegPath = require('ffmpeg-static');
 const axios = require('axios');
+const fs = require('fs');
 
-ffmpeg.setFfmpegPath(ffmpegPath);
-
-// Replace with your YouTube Data API key
-const YOUTUBE_API_KEY = 'AIzaSyBQSOlFefCVJjVctHDs2VPwkUAJvJRuKH4';
-
+// Define the command structure
 module.exports = {
     name: 'yta',
-    description: 'Download audio from YouTube',
+    description: 'Download audio from a YouTube video based on the given URL',
     category: 'Media',
-    async execute(conn, chatId, args) {
-        console.log("Executing !yta command with args:", args);
-        
-        const youtubeUrl = args[0];
-        if (!youtubeUrl) {
-            console.error("No YouTube link provided.");
-            return conn.sendMessage(chatId, { text: "Please provide a YouTube link! Usage: !yta <YouTube_URL>" });
-        }
+    async execute(conn, chatId, args, senderId) {
+        const url = args[0];
 
-        if (!ytdl.validateURL(youtubeUrl)) {
-            console.error("Invalid YouTube link provided:", youtubeUrl);
-            return conn.sendMessage(chatId, { text: "Invalid YouTube link. Please try again." });
+        if (!url) {
+            return conn.sendMessage(chatId, { text: 'Please provide a valid YouTube video URL.' });
         }
 
         try {
-            const videoId = ytdl.getURLVideoID(youtubeUrl);
-            console.log("Extracted video ID:", videoId);
-
-            const videoInfo = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
-                params: {
-                    id: videoId,
-                    part: 'snippet',
-                    key: YOUTUBE_API_KEY,
-                },
+            // Make a request to your yt-dlp API
+            const response = await axios.post('http://127.0.0.1:5000/download', {
+                url: url,
             });
-            console.log("Video info received:", videoInfo.data);
 
-            if (videoInfo.data.items.length === 0) {
-                console.error("Audio not found or is restricted.");
-                return conn.sendMessage(chatId, { text: "Audio not found or is restricted." });
-            }
+            if (response.data.filepath) {
+                const filepath = response.data.filepath;
 
-            const title = videoInfo.data.items[0].snippet.title.replace(/[\/\\:*?"<>|]/g, "");
-            console.log("Audio title:", title);
-            const outputPath = path.resolve(__dirname, `${title}.mp3`);
-
-            await conn.sendMessage(chatId, { text: `Downloading audio for "${title}"...` });
-
-            const downloadAudio = () => {
-                return new Promise((resolve, reject) => {
-                    const audioStream = ytdl(youtubeUrl, {
-                        filter: 'audioonly',
-                        quality: 'highestaudio',
-                        requestOptions: {
-                            headers: {
-                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-                                "Accept-Language": "en-US,en;q=0.9",
-                            }
-                        }
-                    });
-
-                    ffmpeg(audioStream)
-                        .toFormat('mp3')
-                        .output(outputPath)
-                        .on('end', () => {
-                            console.log("Audio download completed:", title);
-                            resolve();
-                        })
-                        .on('error', (error) => {
-                            console.error("Error during audio conversion:", error);
-                            reject(error);
-                        })
-                        .run();
+                // Send the audio file to the user with a hidden mention
+                await conn.sendMessage(chatId, {
+                    audio: fs.createReadStream(filepath), // Stream the audio file
+                    caption: `Here's your audio, @${senderId.split('@')[0]}!`,
+                    mentions: [senderId], // Mention the user
                 });
-            };
 
-            await downloadAudio();
-
-            await conn.sendMessage(chatId, {
-                audio: fs.readFileSync(outputPath),
-                mimetype: 'audio/mp3',
-                caption: `Here is your audio: ${title}`,
-            });
-
-            fs.unlinkSync(outputPath);
-            console.log("Temporary audio file deleted:", outputPath);
+                // Optionally, you can delete the file after sending
+                fs.unlinkSync(filepath); // Remove the file after sending
+            } else {
+                await conn.sendMessage(chatId, { text: 'Download error: Sorry, can\'t find that.' });
+            }
         } catch (error) {
-            console.error("Error in !yta command:", error);
-            conn.sendMessage(chatId, { text: "There was an error processing your request. Please try again later." });
+            console.error('Error downloading audio:', error);
+            await conn.sendMessage(chatId, { text: `Error: ${error.response ? error.response.data.error : error.message}` });
         }
     }
 };
