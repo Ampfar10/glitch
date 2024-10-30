@@ -60,7 +60,7 @@ module.exports = {
                 video: { url: videoFilePath },
                 caption: `Here is your video: *${videoData.title}*`,
                 mimetype: 'video/mp4',
-                mentions: [senderId]
+                mentions: [senderId],
                 parse_mode: 'Markdown'
             });
 
