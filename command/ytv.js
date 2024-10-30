@@ -1,34 +1,76 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+
+async function ensureDownloadDirectory() {
+    const downloadDir = path.join(__dirname, '../downloads');
+    if (!fs.existsSync(downloadDir)) {
+        fs.mkdirSync(downloadDir, { recursive: true });
+        console.log(`Created download directory: ${downloadDir}`);
+    }
+    return downloadDir;
+}
+
+async function fetchYouTubeVideo(query) {
+    try {
+        const apiURL = `https://api.agatz.xyz/api/ytplayvid?message=${encodeURIComponent(query)}`;
+        const response = await axios.get(apiURL);
+        if (response.status === 200 && response.data.data) {
+            return response.data.data;
+        } else {
+            throw new Error('Failed to retrieve YouTube video data.');
+        }
+    } catch (error) {
+        console.error('Error fetching video data:', error);
+        return null;
+    }
+}
 
 module.exports = {
     name: 'ytv',
-    description: 'Download video from YouTube in 720p',
+    description: 'Download video from YouTube',
     category: 'Media',
     async execute(conn, chatId, args, senderId) {
-        const url = args[0];
-
-        if (!url) {
-            return conn.sendMessage(chatId, { text: 'Please provide a YouTube video URL!' });
+        const query = args.join(' ').trim();
+        if (!query) {
+            await conn.sendMessage(chatId, { text: 'Please provide a YouTube search query or video URL!' });
+            return;
         }
 
         try {
-            // Send request to download video and get title
-            const response = await axios.post('https://ampfar12.pythonanywhere.com/downloadv', { url });
-            const { title } = response.data;
+            const videoData = await fetchYouTubeVideo(query);
+            if (!videoData) {
+                await conn.sendMessage(chatId, { text: 'Failed to retrieve the video. Please try again.' });
+                return;
+            }
 
-            // Notify the user about the download with the video title
-            const notifyMessage = await conn.sendMessage(chatId, { text: `Downloading ${title}...`, mentions: [senderId] });
-
-            // Send the video as a document
-            const filepath = response.data.filepath;
             await conn.sendMessage(chatId, {
-                video: { url: filepath },
-                caption: `Here is your video: ${title}`,
-                mentions: [senderId]
+                text: `Found: *${videoData.title}*\nBy: ${videoData.author}\nDuration: ${videoData.duration}\nUploaded: ${videoData.uploadedAt}\nViews: ${videoData.views}\n\nStarting download...`,
+                parse_mode: 'Markdown'
             });
+
+            const downloadDir = await ensureDownloadDirectory();
+            const videoFilePath = path.join(downloadDir, `${Date.now()}.mp4`);
+
+            const response = await axios.get(videoData.downloadUrl, { responseType: 'arraybuffer' });
+            fs.writeFileSync(videoFilePath, response.data);
+            console.log(`Video downloaded successfully: ${videoFilePath}`);
+
+            await conn.sendMessage(chatId, {
+                video: { url: videoFilePath },
+                caption: `Here is your video: *${videoData.title}*`,
+                mimetype: 'video/mp4',
+                mentions: [senderId]
+                parse_mode: 'Markdown'
+            });
+
+            setTimeout(() => {
+                fs.unlinkSync(videoFilePath);
+                console.log(`Deleted video file: ${videoFilePath}`);
+            }, 120000);
         } catch (error) {
-            console.error('Error downloading video:', error.message);
-            await conn.sendMessage(chatId, { text: 'Failed to download video. Please try again later.', mentions: [senderId] });
+            console.error('Error in ytv command:', error);
+            await conn.sendMessage(chatId, { text: `An error occurred: ${error.message}` });
         }
     }
 };
