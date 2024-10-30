@@ -1,97 +1,34 @@
-const fs = require('fs');
-const path = require('path');
-const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
 const axios = require('axios');
-
-ffmpeg.setFfmpegPath(ffmpegPath);
-
-// Replace with your YouTube Data API key
-const YOUTUBE_API_KEY = 'AIzaSyBQSOlFefCVJjVctHDs2VPwkUAJvJRuKH4';
 
 module.exports = {
     name: 'ytv',
-    description: 'Download video from YouTube',
+    description: 'Download video from YouTube in 720p',
     category: 'Media',
-    async execute(conn, chatId, args) {
-        console.log("Executing !ytv command with args:", args);
-        
-        const youtubeUrl = args[0];
-        if (!youtubeUrl) {
-            console.error("No YouTube link provided.");
-            return conn.sendMessage(chatId, { text: "Please provide a YouTube link! Usage: !ytv <YouTube_URL>" });
-        }
+    async execute(conn, chatId, args, senderId) {
+        const url = args[0];
 
-        if (!ytdl.validateURL(youtubeUrl)) {
-            console.error("Invalid YouTube link provided:", youtubeUrl);
-            return conn.sendMessage(chatId, { text: "Invalid YouTube link. Please try again." });
+        if (!url) {
+            return conn.sendMessage(chatId, { text: 'Please provide a YouTube video URL!' });
         }
 
         try {
-            const videoId = ytdl.getURLVideoID(youtubeUrl);
-            console.log("Extracted video ID:", videoId);
+            // Send request to download video and get title
+            const response = await axios.post('http://127.0.0.1:5000/downloadv', { url });
+            const { title } = response.data;
 
-            const videoInfo = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
-                params: {
-                    id: videoId,
-                    part: 'snippet',
-                    key: YOUTUBE_API_KEY,
-                },
-            });
-            console.log("Video info received:", videoInfo.data);
+            // Notify the user about the download with the video title
+            const notifyMessage = await conn.sendMessage(chatId, { text: `Downloading ${title}...`, mentions: [senderId] });
 
-            if (videoInfo.data.items.length === 0) {
-                console.error("Video not found or is restricted.");
-                return conn.sendMessage(chatId, { text: "Video not found or is restricted." });
-            }
-
-            const title = videoInfo.data.items[0].snippet.title.replace(/[\/\\:*?"<>|]/g, "");
-            console.log("Video title:", title);
-            const outputPath = path.resolve(__dirname, `${title}.mp4`);
-
-            await conn.sendMessage(chatId, { text: `Downloading "${title}"...` });
-
-            const downloadVideo = () => {
-                return new Promise((resolve, reject) => {
-                    const videoStream = ytdl(youtubeUrl, {
-                        filter: 'audioandvideo',
-                        quality: 'highest',
-                        requestOptions: {
-                            headers: {
-                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-                                "Accept-Language": "en-US,en;q=0.9",
-                            }
-                        }
-                    });
-
-                    ffmpeg(videoStream)
-                        .output(outputPath)
-                        .on('end', () => {
-                            console.log("Video download completed:", title);
-                            resolve();
-                        })
-                        .on('error', (error) => {
-                            console.error("Error during video conversion:", error);
-                            reject(error);
-                        })
-                        .run();
-                });
-            };
-
-            await downloadVideo();
-
+            // Send the video as a document
+            const filepath = response.data.filepath;
             await conn.sendMessage(chatId, {
-                video: fs.readFileSync(outputPath),
-                mimetype: 'video/mp4',
+                video: { url: filepath },
                 caption: `Here is your video: ${title}`,
+                mentions: [senderId]
             });
-
-            fs.unlinkSync(outputPath);
-            console.log("Temporary video file deleted:", outputPath);
         } catch (error) {
-            console.error("Error in !ytv command:", error);
-            conn.sendMessage(chatId, { text: "There was an error processing your request. Please try again later." });
+            console.error('Error downloading video:', error.message);
+            await conn.sendMessage(chatId, { text: 'Failed to download video. Please try again later.', mentions: [senderId] });
         }
     }
 };
